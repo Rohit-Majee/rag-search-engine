@@ -145,7 +145,7 @@ def build_command():
     idx.save()
     print("Index successfully built and cached!")
 
-def search_command(query: str, n_result: int = 5) -> list[dict]:
+def inverted_index_search_command(query: str, n_result: int = 5) -> list[dict]:
     idx = InvertedIndex()
     idx.load()
     
@@ -166,4 +166,29 @@ def search_command(query: str, n_result: int = 5) -> list[dict]:
             if len(result) >= n_result:
                 return result
             
+    return result
+
+
+def search_command(query: str, n_result: int = 5) -> list[dict]:
+    idx = InvertedIndex()
+    idx.load()
+    
+    query_tokens = process(query)
+    scores: dict[int, float] = defaultdict(float)
+
+    # 1. Aggregate the TF-IDF scores
+    for qt in query_tokens:
+        matching_doc_ids = idx.get_documents(qt)
+        for doc_id in matching_doc_ids:
+            # Add the TF-IDF score for this specific token to the document's total score
+            scores[doc_id] += idx.get_tf_idf(doc_id, qt)
+
+    # 2. Sort the documents by their total score (Descending)
+    sorted_doc_ids = sorted(scores.keys(), key=lambda doc_id: scores[doc_id], reverse=True)
+    
+    # 3. Grab the top 'n_result' documents and return them
+    result = []
+    for doc_id in sorted_doc_ids[:n_result]:
+        result.append(idx.docmap[doc_id])
+        
     return result

@@ -1,7 +1,8 @@
 import os
 import pickle
+import math
 import string
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 import nltk
 from nltk.corpus import stopwords
@@ -39,18 +40,53 @@ class InvertedIndex:
     def __init__(self):
         self.index: dict[str, set[int]] = defaultdict(set)
         self.docmap: dict[int, dict] = {} # maps document ID to document
+        self.term_frequencies = defaultdict(Counter) 
+
         self.index_path = CACHE_PATH / "index.pkl"
         self.docmap_path = CACHE_PATH / "docmap.pkl"
+        self.term_frequencies_path = CACHE_PATH / "term_frequencies.pkl"
 
     def __add_document(self, doc_id: int, text: str):
         """Adds a single document's text to the index."""
         tokens = process(text)
         for token in set(tokens):
             self.index[token].add(doc_id) 
+        
+        self.term_frequencies[doc_id].update(tokens)
 
     def get_documents(self, term: str) -> list[int]:
         """Gets sorted document IDs for a single preprocessed token."""
         return sorted(list(self.index[term]))
+    
+    def get_tf(self, doc_id: int, term: str):
+        """Gets the term frequency"""
+        tokens = process(term)
+        if len(tokens) == 0:
+            return 0
+        if len(tokens) > 1:
+            raise ValueError("get_tf only accepts a single term.")
+        
+        return self.term_frequencies[doc_id][tokens[0]]
+    
+    def get_idf(self, term:str) -> float:
+        """Calculates the Inverse Document Frequency of a term."""
+        tokens = process(term)
+        if len(tokens) == 0:
+            return 0.0
+        if len(tokens) > 1:
+            raise ValueError("get_idf only accepts a single term.")
+            
+        token = tokens[0]
+
+        total_doc_count = len(self.docmap)
+        term_match_doc_count = len(self.index[token])
+        idf_score = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+        return idf_score
+    
+    def get_tf_idf(self, doc_id: int, term: str) -> float:
+        """Calculates the TF-IDF score for a term in a document."""
+        return self.get_tf(doc_id,term) * self.get_idf(term)
+        
 
     def build(self):
         """Loads movies, populates the index and docmap, and saves to disk."""
@@ -68,17 +104,41 @@ class InvertedIndex:
         os.makedirs(CACHE_PATH, exist_ok=True)
         with open(self.index_path, 'wb') as f:
             pickle.dump(self.index, f)
+        
         with open(self.docmap_path, "wb") as f:
             pickle.dump(self.docmap, f)
+        
+        with open(self.term_frequencies_path, "wb") as f:
+            pickle.dump(self.term_frequencies, f)
 
     def load(self):
         """Loads the index and docmap from disk."""
         with open(self.index_path, "rb") as f:
             self.index = pickle.load(f)
+
         with open(self.docmap_path, "rb") as f:
             self.docmap = pickle.load(f)
+        
+        with open(self.term_frequencies_path, "rb") as f:
+            self.term_frequencies = pickle.load(f)
 
 # --- CLI COMMANDS ---
+
+def tf_command(doc_id:int, term:str):
+    idx = InvertedIndex()
+    idx.load()
+    print(idx.get_tf(doc_id,term))
+
+def idf_command(term:str):
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_idf(term)
+
+def tf_idf_command(doc_id:int, term:str):
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_tf_idf(doc_id,term)
+
 def build_command():
     idx = InvertedIndex()
     idx.build()

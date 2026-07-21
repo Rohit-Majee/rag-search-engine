@@ -3,7 +3,8 @@ import os
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
 
-from lib.search_utils import load_movies
+from .search_utils import load_movies
+from .llm import enhance_query_spell,enhance_query_rewrite,enhance_query_expand
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
@@ -137,10 +138,21 @@ def weighted_search_command(query: str, alpha: float, limit: int = 5):
         print(f"  BM25: {res['bm25_score']:.3f}, Semantic: {res['semantic_score']:.3f}")
         print(f"  {res['document']['description'][:100]}...\n") 
 
-def rrf_search_command(query: str, k: int = 60, limit: int = 10):
+def rrf_search_command(query: str, k: int = 60, limit: int = 10, enhance: str = None):
+    search_query = query
+    if enhance == "spell":
+        search_query = enhance_query_spell(search_query)
+        print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'\n")
+    elif enhance == "rewrite":
+        search_query = enhance_query_rewrite(query)
+        print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'\n")     
+    elif enhance == "expand":
+        search_query = enhance_query_expand(query)
+        print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'\n")      
+    
     movies = load_movies()
     hs = HybridSearch(movies)
-    results = hs.rrf_search(query,k,limit)
+    results = hs.rrf_search(search_query,k,limit)
 
     for i, res in enumerate(results, start=1):
         bm_rank = res['bm25_rank'] if res['bm25_rank'] is not None else "N/A"

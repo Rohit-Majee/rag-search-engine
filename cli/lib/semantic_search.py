@@ -1,11 +1,15 @@
 from lib.search_utils import CACHE_PATH,load_movies
 
-from sentence_transformers import SentenceTransformer
 import numpy as np
 import os
 import re
 import json
+from dotenv import load_dotenv
 from collections import defaultdict
+
+load_dotenv()
+
+from sentence_transformers import SentenceTransformer
 
 class SemanticSearch:
     def __init__(self):

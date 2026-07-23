@@ -1,5 +1,6 @@
 from openai import OpenAI
 import os
+import json
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -25,6 +26,9 @@ class ExpandedQuery(BaseModel):
     expanded_terms: str = Field(
         description="Synonyms, related concepts, and genre terms to expand the search. No quotes or conversational text. A single string of space-separated keywords. No brackets, no quotes, no JSON."
     )
+
+class ReRankScore(BaseModel):
+    rerank_score: int
 
 def enhance_query_spell(query: str) -> str:
     prompt = f"""Fix any spelling errors in the user-provided movie search query below.
@@ -118,3 +122,60 @@ def enhance_query_expand(query: str) -> str:
     except Exception as e:
         print(f"\n[Warning] Structured LLM expansion failed: {e}")
         return query
+
+def individual_rerank(query: str, title,document) -> ReRankScore:
+    prompt = f"""You are an expert search engine evaluator scoring the relevance of a movie to a user's search query.
+
+                User Query: "{query}"
+                Movie Title: "{title}"
+                Movie Synopsis: "{document}"
+
+                Evaluate relevance strictly using this rubric:
+                9-10: Perfect match. Directly satisfies the exact user intent, genre, and plot details.
+                7-8: Highly relevant. Fits the main themes and intent, but might miss a minor peripheral detail.
+                4-6: Partially relevant. Shares some keywords or tangential concepts, but is clearly not what the user is looking for.
+                1-3: Barely relevant. Only matches on generic terms (e.g., just the word "movie").
+                0: Completely irrelevant.
+
+                Output ONLY the raw integer number. Do not include quotes, explanations, or the word 'Score'.
+                """
+
+    completion = client.beta.chat.completions.parse(
+        model=os.getenv("MODEL"),
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        response_format=ReRankScore,
+    )
+    result = completion.choices[0].message.parsed
+    return result.rerank_score
+
+
+def batch_rerank(query:str, doc_list_str:str):
+    prompt = f"""Rank the movies listed below by relevance to the following search query.
+    
+            Query: "{query}"
+    
+            Movies:{doc_list_str}
+    
+            Return the movie IDs in order of relevance, best match first.
+    
+            Your response must be a raw JSON array of integers.
+            Do not wrap the JSON in Markdown. Do not use a ```json code block.
+            Do not include any explanatory text.
+    
+            For example:
+            [75, 12, 34, 2, 1]
+    
+            Ranking:"""
+    
+    response = client.chat.completions.create(
+        model=os.getenv("MODEL"),
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw_text = response.choices[0].message.content.strip()
+    ranked_ids = json.loads(raw_text)
+    return ranked_ids
+
+    

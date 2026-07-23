@@ -1,10 +1,15 @@
 import os
+import time
+from dotenv import load_dotenv
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
 
 from .search_utils import load_movies
-from .llm import enhance_query_spell,enhance_query_rewrite,enhance_query_expand
+from .llm import enhance_query_spell,enhance_query_rewrite,enhance_query_expand,individual_rerank,batch_rerank
+
+load_dotenv()
+from sentence_transformers import CrossEncoder
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
@@ -138,7 +143,7 @@ def weighted_search_command(query: str, alpha: float, limit: int = 5):
         print(f"  BM25: {res['bm25_score']:.3f}, Semantic: {res['semantic_score']:.3f}")
         print(f"  {res['document']['description'][:100]}...\n") 
 
-def rrf_search_command(query: str, k: int = 60, limit: int = 10, enhance: str = None):
+def rrf_search_command(query: str, k: int = 60, limit: int = 10, enhance: str = None, rerank_method:str =None):
     search_query = query
     if enhance == "spell":
         search_query = enhance_query_spell(search_query)
@@ -149,10 +154,74 @@ def rrf_search_command(query: str, k: int = 60, limit: int = 10, enhance: str = 
     elif enhance == "expand":
         search_query = enhance_query_expand(query)
         print(f"Enhanced query ({enhance}): '{query}' -> '{search_query}'\n")      
-    
+
     movies = load_movies()
     hs = HybridSearch(movies)
-    results = hs.rrf_search(search_query,k,limit)
+    search_limit = limit * 5 if rerank_method in ("individual","batch","cross_encoder") else limit
+    results = hs.rrf_search(search_query, k, search_limit)
+
+    # Re-Ranking method individual
+    if rerank_method == "individual":
+            print(f"Re-ranking top {len(results)} results using individual method...")
+
+            for res in results:
+                doc_dict = res['document']
+                title = doc_dict['title']
+                document = doc_dict.get('document', doc_dict.get('description', ''))
+                res['rerank_score'] = individual_rerank(query, title, document)
+                time.sleep(3)
+
+
+            results.sort(key=lambda item: item["rerank_score"], reverse=True)
+            results = results[:limit]
+
+    # Re-Ranking Method Batch
+    elif rerank_method == "batch":
+        print(f"Re-ranking top {len(results)} results using batch method...")
+        
+        doc_list_str = ""
+        for res in results:
+            doc_dict = res['document']
+            doc_list_str += f"\nID: {doc_dict['id']} | Title: {doc_dict['title']} | Doc: {doc_dict.get('document', '')}"
+
+        try:
+            ranked_ids = batch_rerank(query,doc_list_str)
+
+            for res in results:
+                doc_id = res['document']['id']
+                try:
+                    res['rerank_rank'] = ranked_ids.index(doc_id)+1
+                except ValueError:
+                    res['rerank_rank'] = 999
+
+        except Exception as e:
+            print(f"\n[Warning] Batch re-ranking failed: {e}")
+            for i, res in enumerate(results):
+                res['rerank_rank'] = i + 1
+
+        results.sort(key=lambda item: item["rerank_rank"])
+        results = results[:limit]
+
+    # Re-Ranking Method Cross encoders
+    elif rerank_method == "cross_encoder":
+        print(f"Re-ranking top {len(results)} results using cross_encoder method...")
+        
+        pairs = []
+        for res in results:
+            doc_dict = res['document']
+            title = doc_dict.get('title', '')
+            document = doc_dict.get('document', doc_dict.get('description', ''))
+            pairs.append([query, f"{title} - {document}"])
+            
+        cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+        scores = cross_encoder.predict(pairs,show_progress_bar=True)
+        
+        for i, res in enumerate(results):
+            res['cross_encoder_score'] = scores[i]
+
+        results.sort(key=lambda item: item["cross_encoder_score"],reverse=True)
+        results = results[:limit]
+
 
     for i, res in enumerate(results, start=1):
         bm_rank = res['bm25_rank'] if res['bm25_rank'] is not None else "N/A"
@@ -162,6 +231,16 @@ def rrf_search_command(query: str, k: int = 60, limit: int = 10, enhance: str = 
         snippet = doc_dict.get('document', doc_dict.get('description', ''))[:100]
 
         print(f"\n{i}. {doc_dict['title']}")
+        
+        if 'rerank_score' in res:
+            print(f"  Re-rank Score: {res['rerank_score']:.3f}/10")
+
+        if 'rerank_rank' in res:
+                    print(f"  Re-rank Rank: {res['rerank_rank']}")
+
+        if 'cross_encoder_score' in res:
+                    print(f"  Cross Encoder Score: {res['cross_encoder_score']:.3f}/10")
+            
         print(f"  RRF Score: {res['rrf_score']:.3f}")
         print(f"  BM25 Rank: {bm_rank}, Semantic Rank: {sem_rank}")
         print(f"  {snippet}...")

@@ -3,6 +3,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = PROJECT_ROOT / "data" / "movies.json"
+GOLDEN_DATASET_PATH = PROJECT_ROOT / "data" / "golden_dataset.json"
 CACHE_PATH = PROJECT_ROOT / "cache"
 
 BM25_K1 = 1.5
@@ -14,6 +15,19 @@ def load_movies() -> list[dict]:
         with open(DATA_PATH, "r") as f:
             data = json.load(f)
             return data['movies']
+    except FileNotFoundError:
+        print(f"Error: {DATA_PATH} not found.")
+        return []
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON in {DATA_PATH}.")
+        return []
+
+def load_test_cases() -> list[dict]:
+    """Load movies from golden_dataset.json."""
+    try:
+        with open(GOLDEN_DATASET_PATH, "r") as f:
+            data = json.load(f)
+            return data['test_cases']
     except FileNotFoundError:
         print(f"Error: {DATA_PATH} not found.")
         return []

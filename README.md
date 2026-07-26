@@ -23,7 +23,7 @@ This project uses `uv` for lightning-fast Python dependency management.
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/yourusername/rag-search-engine.git](https://github.com/yourusername/rag-search-engine.git)
+   git clone https://github.com/Rohit-Majee/rag-search-engine.git
    cd rag-search-engine
 
 ```
@@ -38,10 +38,11 @@ uv sync
 3. **Set up Environment Variables:**
 Create a `.env` file in the root directory and add your Google Gemini API key:
 ```env
-GEMINI_API_KEY=your_api_key_here
 
-```
-
+BASE_URL=http://localhost:11434/v1
+API_KEY=ollama
+MODEL=llama3.1
+IMAGE_MODEL=llava
 
 
 ---
@@ -119,6 +120,6 @@ Benchmarks the accuracy of the search engine.
 Huge thanks to **Isaac Flath** and the team at [Boot.dev](https://boot.dev) for creating the incredible curriculum that guided the construction of this engine.
 
 ```
-http://googleusercontent.com/youtube_content/1
+https://youtu.be/9c48sMot1gA?si=KuCxNjfU_y0bKlcy
 
 ```

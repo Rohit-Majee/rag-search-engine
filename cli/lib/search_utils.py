@@ -14,14 +14,22 @@ def load_movies() -> list[dict]:
     try:
         with open(DATA_PATH, "r") as f:
             data = json.load(f)
-            return data['movies']
+            
+            # If JSON is a top-level list: [...]
+            if isinstance(data, list):
+                return data
+            # If JSON is a top-level dictionary: {"movies": [...]}
+            elif isinstance(data, dict):
+                return data.get("movies", [])
+            
+            return []
     except FileNotFoundError:
         print(f"Error: {DATA_PATH} not found.")
         return []
     except json.JSONDecodeError:
         print(f"Error: Invalid JSON in {DATA_PATH}.")
         return []
-
+    
 def load_test_cases() -> list[dict]:
     """Load movies from golden_dataset.json."""
     try:

@@ -2,8 +2,8 @@ import argparse
 from lib.evaluation import evaluate
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Search Evaluation CLI")
-    parser.add_argument("--limit", type=int, default=5, help="Number of results to evaluate (k for precision@k, recall@k)",)
+    parser = argparse.ArgumentParser(description="Search Evaluation CLI - Measure and benchmark search engine performance using standardized metrics")
+    parser.add_argument("--limit", type=int, default=5, help="Maximum number of top results to evaluate per query (represents 'k' in metrics like Precision@k and Recall@k) (default: 5)")
 
     args = parser.parse_args()
     limit = args.limit

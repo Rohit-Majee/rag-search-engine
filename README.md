@@ -1,5 +1,4 @@
-```markdown
-# 🔍 Custom RAG Search Engine
+## 🔍 Custom RAG Search Engine
 
 A full-featured, from-scratch Retrieval-Augmented Generation (RAG) search engine built in Python. 
 
@@ -125,7 +124,5 @@ Benchmarks the accuracy of the search engine.
 ## 🎓 Acknowledgements
 
 Huge thanks to **Isaac Flath** and the team at [Boot.dev](https://boot.dev) for creating the incredible curriculum that guided the construction of this engine.
-
-```
 
 ```

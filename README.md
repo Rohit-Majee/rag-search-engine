@@ -1,20 +1,18 @@
-### `README.md`
-
 ```markdown
-# 🔍 Custom RAG Search Engine From Scratch
+# 🔍 Custom RAG Search Engine
 
 A full-featured, from-scratch Retrieval-Augmented Generation (RAG) search engine built in Python. 
 
-Instead of just wrapping high-level libraries, this project implements the mathematical and architectural fundamentals of modern search engines from the ground up—starting with raw text processing and TF-IDF, moving through BM25 and Semantic Search, and culminating in advanced Hybrid ranking, RAG, and Multimodal (Image + Text) search.
+This project was developed following the comprehensive Boot.dev course **"The End of Search Engines? RAG Explained"** by Isaac Flath. Instead of just wrapping high-level libraries, this project implements the mathematical and architectural fundamentals of modern search engines from the ground up—starting with raw text processing and TF-IDF, moving through BM25 and Semantic Search, and culminating in advanced Hybrid ranking, RAG, and Multimodal (Image + Text) search.
 
 ## ✨ Core Features
 * **Keyword Search (BM25):** Custom implementation of Term Frequency (TF), Inverse Document Frequency (IDF), and the industry-standard BM25 algorithm for exact-match retrieval.
 * **Semantic Vector Search:** Uses `sentence-transformers` and local HuggingFace embeddings to search documents by meaning and context rather than exact keywords.
 * **Advanced Text Chunking:** Includes fixed-size and semantic chunking with overlapping sliding windows to preserve context in long documents.
 * **Hybrid Search (RRF & Weighted):** Combines keyword and semantic search results using Reciprocal Rank Fusion (RRF) and Weighted Averages with customizable alpha coefficients.
-* **LLM Query Enhancements:** Leverages the Gemini API to automatically fix spelling, rewrite, or expand queries prior to vector retrieval.
+* **LLM Query Enhancements:** Leverages local LLMs to automatically fix spelling, rewrite, or expand queries prior to vector retrieval.
 * **Retrieval-Augmented Generation (RAG):** Generates grounded AI answers, document summaries, and inline citations based on retrieved context.
-* **Multimodal Search:** Uses CLIP (`clip-ViT-B-32`) to map both images and text into the same vector space, allowing users to search the text dataset using image queries.
+* **Multimodal Search:** Uses CLIP (`clip-ViT-B-32`) to map both images and text into the same vector space, and the `llava` vision model to analyze and search text datasets using uploaded images.
 * **Evaluation Suite:** Built-in tools to benchmark Search Engine performance (Precision@k, Recall@k, F1 Score).
 
 ## 🚀 Installation & Setup
@@ -23,7 +21,7 @@ This project uses `uv` for lightning-fast Python dependency management.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Rohit-Majee/rag-search-engine.git
+   git clone [https://github.com/Rohit-Majee/rag-search-engine.git](https://github.com/Rohit-Majee/rag-search-engine.git)
    cd rag-search-engine
 
 ```
@@ -36,13 +34,21 @@ uv sync
 
 
 3. **Set up Environment Variables:**
-Create a `.env` file in the root directory and add your Google Gemini API key:
+Create a `.env` file in the root directory and configure it to point to your local Ollama server:
 ```env
+# The base URL for the LLM API server (e.g., http://localhost:11434/v1 for Ollama)
+BASE_URL=<YOUR_BASE_URL>
 
-BASE_URL=http://localhost:11434/v1
-API_KEY=ollama
-MODEL=llama3.1
-IMAGE_MODEL=llava
+# API Key for inference (e.g., 'ollama' for local, or your actual key for cloud providers)
+API_KEY=<YOUR_API_KEY>
+
+# The primary language model to use for text generation, query rewriting, and RAG
+MODEL=<YOUR_TEXT_MODEL>
+
+# The multimodal/vision model to use for image querying and description
+IMAGE_MODEL=<YOUR_VISION_MODEL>
+```
+
 
 
 ---
@@ -85,7 +91,7 @@ Combines BM25 keyword scores with Semantic cosine similarity scores.
 
 ### 4. Retrieval-Augmented Generation (`augmented_generation_cli.py`)
 
-Uses the Gemini API to synthesize answers based on retrieved context.
+Uses the local LLM to synthesize answers based on retrieved context.
 
 * `rag <query>` - Execute a full RAG pipeline to generate an AI answer.
 * `summarize <query> [--limit]` - Generate a concise AI summary of the retrieved results.
@@ -94,7 +100,7 @@ Uses the Gemini API to synthesize answers based on retrieved context.
 
 ### 5. Multimodal Search (`multimodal_search_cli.py`)
 
-Embeds and searches across images and text using the `jina-clip-v2` or `clip-ViT-B-32` models.
+Embeds and searches across images and text.
 
 * `verify_image_embedding <image_path>` - Generate and check the dimensional shape of an image embedding.
 * `image_search <image_path>` - Upload a `.jpg`/`.png` to search the movie text dataset using mathematical visual similarity.
@@ -113,13 +119,13 @@ Benchmarks the accuracy of the search engine.
 * **Package Manager:** `uv`
 * **Embedding Models:** `sentence-transformers`, `transformers`, `CLIP`
 * **Local Vectors:** `numpy`, `PIL`
-* **LLM Integration:** `google-genai` (Gemini)
+* **LLM Engine:** Local Inference via `Ollama`
+* **Models Used:** `llama3.1` (Text), `llava` (Vision)
 
 ## 🎓 Acknowledgements
 
 Huge thanks to **Isaac Flath** and the team at [Boot.dev](https://boot.dev) for creating the incredible curriculum that guided the construction of this engine.
 
 ```
-https://youtu.be/9c48sMot1gA?si=KuCxNjfU_y0bKlcy
 
 ```
